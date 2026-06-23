@@ -99,8 +99,9 @@ const SEED_NEZH=[
  [13334.66,4559.27,2644.89,972.70]
 ];
 
-// Авто-суммы из писем (электричество). Месяцы: 0=Янв ... 11=Дек. Обновляется по запросу.
-const AUTO={
+// Авто-суммы (электричество и пр.). Загружаются из data.json (его обновляет скрипт).
+// Значения ниже — резервные, на случай если data.json недоступен.
+let AUTO={
   kv1:{1:{2:5520.88,3:3162.25}},   // Новочерёмушкинская — Электроэнергия (сч. 06558-087-87)
   kv3:{1:{2:436.53,3:510.82}},     // Перекопская — Электроэнергия (сч. 70141-040-09)
   dom:{0:{2:2557.85,3:830.75}}     // Дом — Электроэнергия (сч. 40222-019-60)
@@ -208,6 +209,15 @@ function refreshTotals(){
 }
 
 renderHome();
+
+// Автоподтягивание сумм из data.json (обновляется скриптом). Тихо игнорируем ошибки.
+fetch('data.json?t='+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(d){
+  if(d&&d.auto){
+    AUTO=d.auto;
+    var det=document.getElementById('detail');
+    if(det&&det.style.display!=='none')renderDetail();else renderHome();
+  }
+}).catch(function(){});
 </script>
 </body>
 </html>
