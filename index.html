@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ЖКУ">
+<meta name="theme-color" content="#1F3864">
+<title>Платежи ЖКУ 2026</title>
+<style>
+  :root{--navy:#1F3864;--blue:#2E5496;--green:#1aa260;--greenbg:#e4f6ec;--bg:#f2f4f8;--line:#dfe3ea;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:#1c2330;padding-bottom:40px;}
+  header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.15);display:flex;align-items:center;gap:12px;}
+  header h1{margin:0;font-size:18px;font-weight:700;flex:1;}
+  header .sub{font-size:12px;opacity:.8;margin-top:2px;font-weight:400;display:block;}
+  .back{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:22px;line-height:1;width:36px;height:36px;border-radius:10px;}
+  .wrap{padding:0 12px;max-width:560px;margin:0 auto;}
+  .months{display:flex;overflow-x:auto;gap:8px;padding:10px 12px;scrollbar-width:none;}
+  .months::-webkit-scrollbar{display:none;}
+  .mbtn{flex:0 0 auto;padding:8px 14px;border-radius:20px;background:#fff;border:1px solid var(--line);font-size:14px;font-weight:600;color:#555;}
+  .mbtn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .obj{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:16px;margin:10px 0;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  .obj .ic{width:42px;height:42px;border-radius:11px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .obj .info{flex:1;}
+  .obj .nm{font-size:17px;font-weight:700;}
+  .obj .meta{font-size:12px;color:#8a92a0;margin-top:2px;}
+  .obj .amt{font-size:16px;font-weight:700;color:var(--navy);white-space:nowrap;}
+  .obj .chev{color:#c2c8d2;font-size:22px;}
+  .grand{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--navy);color:#fff;border-radius:14px;font-size:16px;font-weight:700;margin:12px 0;}
+  .card{background:#fff;border-radius:14px;padding:4px 4px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px;}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row.paid{background:var(--greenbg);}
+  .nm{flex:1;font-size:15px;font-weight:600;min-width:0;}
+  .amt-in{width:104px;text-align:right;font-size:16px;font-weight:600;border:1px solid var(--line);border-radius:9px;padding:9px 8px;background:#fafbfc;}
+  .amt-in:focus{outline:none;border-color:var(--blue);background:#fff;}
+  .row.paid .amt-in{color:var(--green);border-color:#bfe6cd;}
+  .chk{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:2px solid #cdd3dd;background:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;color:transparent;}
+  .row.paid .chk{background:var(--green);border-color:var(--green);color:#fff;}
+  .total{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--navy);color:#fff;border-radius:14px;font-size:17px;font-weight:700;margin-bottom:8px;}
+  .subtot{display:flex;justify-content:space-between;padding:4px 16px 16px;font-size:13px;color:#8a92a0;}
+  .hint{font-size:12px;color:#8a92a0;text-align:center;margin:4px 16px 18px;line-height:1.5;}
+  .reset{display:block;margin:8px auto 0;background:none;border:none;color:#b04;font-size:13px;text-decoration:underline;}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#dfe3ea;margin-left:6px;vertical-align:middle;}
+  .dot.full{background:var(--green);}
+  .dot.part{background:#f0a500;}
+</style>
+</head>
+<body>
+<header>
+  <button class="back" id="backBtn" onclick="goHome()" style="display:none">‹</button>
+  <h1 id="title">Платежи ЖКУ 2026<span class="sub" id="subtitle">оплата до 20 числа · хранится в телефоне</span></h1>
+</header>
+
+<div id="home">
+  <div class="wrap">
+    <div class="grand"><span>Всего за 2026</span><span id="grandTotal">0 ₽</span></div>
+    <div id="objList"></div>
+    <button class="reset" onclick="if(confirm('Очистить все суммы и отметки?')){localStorage.removeItem(KEY);location.reload();}">Очистить все данные</button>
+    <div class="hint">Тапните по объекту, чтобы внести суммы по статьям и отметить оплату.</div>
+  </div>
+</div>
+
+<div id="detail" style="display:none">
+  <div class="months" id="months"></div>
+  <div class="wrap">
+    <div class="card" id="artList"></div>
+    <div class="total"><span>Итого за <span id="mname"></span></span><span id="mtotal">0 ₽</span></div>
+    <div class="subtot"><span id="paidCount">оплачено 0 из 0</span><span>за год: <span id="objYear">0 ₽</span></span></div>
+    <div class="hint">Впишите сумму и тапните кружок справа — отметка оплаты. Зелёная строка = оплачено.</div>
+  </div>
+</div>
+
+<script>
+const YEAR=2026;
+const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const MSHORT=["Янв","Фев","Мар","Апр","Май","Июн","Июл","Авг","Сен","Окт","Ноя","Дек"];
+const KEY="zhku3_"+YEAR;
+const KV=["УК / Жилищник","Электроэнергия","ФКР (кап.ремонт)","Вода / ГВС","Газ","Оператор отходы","Прочее"];
+const OBJECTS=[
+  {id:"nezh",name:"Нежилое",icon:"🏢",articles:["ГБУ Жилищник","Мосэнергосбыт","ФКР (кап.ремонт)","Оператор отходы","Связь / прочее"]},
+  {id:"kv1",name:"Квартира 1",icon:"🏠",articles:KV},
+  {id:"kv2",name:"Квартира 2",icon:"🏠",articles:KV},
+  {id:"kv3",name:"Квартира 3",icon:"🏠",articles:KV},
+  {id:"dom",name:"Дом",icon:"🏡",articles:["Электроэнергия","Газ","Водоснабжение","Вывоз ТКО","Связь / интернет","Охрана / прочее"]},
+  {id:"park",name:"Парковка",icon:"🅿️",articles:["Взнос ТСЖ / эксплуатация","Электроэнергия","Прочее"]}
+];
+const SEED_NEZH=[
+ [9047.07,4912.90,2644.89,972.70],
+ [25834.34,4972.84,2644.89,972.70],
+ [12832.97,3821.76,2644.89,972.70],
+ [13322.52,12332.86,2644.89,972.70],
+ [14026.50,5851.39,2644.89,972.70],
+ [13334.66,4559.27,2644.89,972.70]
+];
+
+let store=load();
+let curObj=0, curMonth=Math.min(new Date().getMonth(),11);
+
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s)return s;}catch(e){}
+  const init={};
+  OBJECTS.forEach(o=>{init[o.id]={amt:o.articles.map(()=>Array(12).fill("")),paid:o.articles.map(()=>Array(12).fill(false))};});
+  SEED_NEZH.forEach((row,m)=>row.forEach((v,a)=>{init["nezh"].amt[a][m]=v;init["nezh"].paid[a][m]=true;}));
+  return init;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+function num(v){return parseFloat((""+v).replace(",","."))||0;}
+function fmt(n){return (Math.round(n*100)/100).toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2})+" ₽";}
+function objMonth(o,m){return store[o.id].amt.reduce((s,art)=>s+num(art[m]),0);}
+function objYear(o){let s=0;for(let m=0;m<12;m++)s+=objMonth(o,m);return s;}
+function monthPaidState(o,m){
+  let any=false,all=true;
+  store[o.id].amt.forEach((art,ai)=>{if(num(art[m])>0){any=true;if(!store[o.id].paid[ai][m])all=false;}});
+  if(!any)return "none";return all?"full":"part";
+}
+
+function goHome(){document.getElementById("home").style.display="";document.getElementById("detail").style.display="none";
+  document.getElementById("backBtn").style.display="none";
+  document.getElementById("title").innerHTML='Платежи ЖКУ 2026<span class="sub">оплата до 20 числа · хранится в телефоне</span>';
+  renderHome();}
+function openObj(i){curObj=i;document.getElementById("home").style.display="none";document.getElementById("detail").style.display="";
+  document.getElementById("backBtn").style.display="";
+  document.getElementById("title").innerHTML=OBJECTS[i].name+'<span class="sub">статьи затрат · '+OBJECTS[i].articles.length+' шт.</span>';
+  renderDetail();}
+
+function renderHome(){
+  const list=document.getElementById("objList");list.innerHTML="";let grand=0;
+  OBJECTS.forEach((o,i)=>{
+    const yt=objYear(o);grand+=yt;
+    const d=document.createElement("div");d.className="obj";d.onclick=()=>openObj(i);
+    d.innerHTML='<div class="ic">'+o.icon+'</div><div class="info"><div class="nm">'+o.name+
+      '</div><div class="meta">'+o.articles.length+' статей</div></div><div class="amt">'+(yt>0?fmt(yt):"—")+'</div><div class="chev">›</div>';
+    list.appendChild(d);
+  });
+  document.getElementById("grandTotal").textContent=fmt(grand);
+}
+
+function renderMonths(){
+  const o=OBJECTS[curObj];
+  const c=document.getElementById("months");c.innerHTML="";
+  MONTHS.forEach((m,i)=>{
+    const b=document.createElement("button");
+    b.className="mbtn"+(i===curMonth?" active":"");
+    const st=monthPaidState(o,i);
+    b.innerHTML=MSHORT[i]+(st!=="none"?'<span class="dot '+(st==="full"?"full":"part")+'"></span>':"");
+    b.onclick=()=>{curMonth=i;renderDetail();c.children[i].scrollIntoView({inline:"center",behavior:"smooth"});};
+    c.appendChild(b);
+  });
+  c.children[curMonth].scrollIntoView({inline:"center"});
+}
+
+function renderDetail(){
+  renderMonths();
+  const o=OBJECTS[curObj];
+  document.getElementById("mname").textContent=MONTHS[curMonth].toLowerCase();
+  const list=document.getElementById("artList");list.innerHTML="";
+  o.articles.forEach((art,ai)=>{
+    const val=store[o.id].amt[ai][curMonth];
+    const paid=store[o.id].paid[ai][curMonth];
+    const row=document.createElement("div");row.className="row"+(paid?" paid":"");
+    const nm=document.createElement("div");nm.className="nm";nm.textContent=art;
+    const inp=document.createElement("input");inp.className="amt-in";inp.type="text";inp.inputMode="decimal";
+    inp.placeholder="0 ₽";inp.value=val!==""&&val!=null?val:"";
+    inp.onfocus=()=>inp.select();
+    inp.oninput=()=>{store[o.id].amt[ai][curMonth]=inp.value.replace(/[^\d.,]/g,"");save();refreshTotals();renderMonths();};
+    const chk=document.createElement("button");chk.className="chk";chk.textContent="✓";
+    chk.onclick=()=>{store[o.id].paid[ai][curMonth]=!store[o.id].paid[ai][curMonth];save();
+      row.classList.toggle("paid",store[o.id].paid[ai][curMonth]);refreshTotals();renderMonths();};
+    row.appendChild(nm);row.appendChild(inp);row.appendChild(chk);list.appendChild(row);
+  });
+  refreshTotals();
+}
+function refreshTotals(){
+  const o=OBJECTS[curObj];
+  document.getElementById("mtotal").textContent=fmt(objMonth(o,curMonth));
+  document.getElementById("objYear").textContent=fmt(objYear(o));
+  let paid=0,withAmt=0;
+  o.articles.forEach((art,ai)=>{if(num(store[o.id].amt[ai][curMonth])>0){withAmt++;if(store[o.id].paid[ai][curMonth])paid++;}});
+  document.getElementById("paidCount").textContent="оплачено "+paid+" из "+withAmt;
+}
+
+renderHome();
+</script>
+</body>
+</html>
