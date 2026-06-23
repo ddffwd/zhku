@@ -45,6 +45,9 @@
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#dfe3ea;margin-left:6px;vertical-align:middle;}
   .dot.full{background:var(--green);}
   .dot.part{background:#f0a500;}
+  .amt-in.auto{color:#2E5496;border-style:dashed;border-color:#9bb8e0;background:#eef3fb;}
+  .hintlink{margin-left:6px;text-decoration:none;font-size:15px;vertical-align:middle;}
+  .legend{font-size:11px;color:#8a92a0;text-align:center;margin:2px 16px 10px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -69,6 +72,7 @@
     <div class="total"><span>Итого за <span id="mname"></span></span><span id="mtotal">0 ₽</span></div>
     <div class="subtot"><span id="paidCount">оплачено 0 из 0</span><span>за год: <span id="objYear">0 ₽</span></span></div>
     <div class="hint">Впишите сумму и тапните кружок справа — отметка оплаты. Зелёная строка = оплачено.</div>
+    <div class="legend">Синяя пунктирная сумма — подставлена из письма (электричество), проверьте и отметьте оплату. 📩 — открыть квитанцию в почте (газ, Жилищник, гараж).</div>
   </div>
 </div>
 
@@ -95,6 +99,21 @@ const SEED_NEZH=[
  [13334.66,4559.27,2644.89,972.70]
 ];
 
+// Авто-суммы из писем (электричество). Месяцы: 0=Янв ... 11=Дек. Обновляется по запросу.
+const AUTO={
+  kv1:{1:{2:5520.88,3:3162.25}},   // Новочерёмушкинская — Электроэнергия (сч. 06558-087-87)
+  kv3:{1:{2:436.53,3:510.82}},     // Перекопская — Электроэнергия (сч. 70141-040-09)
+  dom:{0:{2:2557.85,3:830.75}}     // Дом — Электроэнергия (сч. 40222-019-60)
+};
+// Ссылки на квитанции в Gmail (PDF-услуги, сумму вписываете вручную).
+const HINTS={
+  nezh:{0:"from%3Akapremont-281"},        // ГБУ Жилищник
+  dom:{1:"from%3Agazmsk.ru+OR+%D0%B3%D0%B0%D0%B7%D0%BE%D1%81%D0%BD%D0%B0%D0%B1%D0%B6%D0%B5%D0%BD%D0%B8%D1%8F"}, // Газ
+  park:{0:"%D0%9F%D0%90%D0%A0%D0%9A_%D0%9F_020"}   // Гараж — ТСЖ Пирамида
+};
+function autoVal(id,ai,m){return (AUTO[id]&&AUTO[id][ai]&&AUTO[id][ai][m]!=null)?AUTO[id][ai][m]:null;}
+function eff(id,ai,m){const v=store[id].amt[ai][m];if(v!==""&&v!=null)return num(v);const a=autoVal(id,ai,m);return a!=null?a:0;}
+
 let store=load();
 let curObj=0, curMonth=Math.min(new Date().getMonth(),11);
 
@@ -108,11 +127,11 @@ function load(){
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 function num(v){return parseFloat((""+v).replace(",","."))||0;}
 function fmt(n){return (Math.round(n*100)/100).toLocaleString("ru-RU",{minimumFractionDigits:0,maximumFractionDigits:2})+" ₽";}
-function objMonth(o,m){return store[o.id].amt.reduce((s,art)=>s+num(art[m]),0);}
+function objMonth(o,m){let s=0;for(let ai=0;ai<o.articles.length;ai++)s+=eff(o.id,ai,m);return s;}
 function objYear(o){let s=0;for(let m=0;m<12;m++)s+=objMonth(o,m);return s;}
 function monthPaidState(o,m){
   let any=false,all=true;
-  store[o.id].amt.forEach((art,ai)=>{if(num(art[m])>0){any=true;if(!store[o.id].paid[ai][m])all=false;}});
+  o.articles.forEach((art,ai)=>{if(eff(o.id,ai,m)>0){any=true;if(!store[o.id].paid[ai][m])all=false;}});
   if(!any)return "none";return all?"full":"part";
 }
 
@@ -158,13 +177,20 @@ function renderDetail(){
   const list=document.getElementById("artList");list.innerHTML="";
   o.articles.forEach((art,ai)=>{
     const val=store[o.id].amt[ai][curMonth];
+    const av=autoVal(o.id,ai,curMonth);
+    const isAuto=(val===""||val==null)&&av!=null;
     const paid=store[o.id].paid[ai][curMonth];
     const row=document.createElement("div");row.className="row"+(paid?" paid":"");
     const nm=document.createElement("div");nm.className="nm";nm.textContent=art;
-    const inp=document.createElement("input");inp.className="amt-in";inp.type="text";inp.inputMode="decimal";
-    inp.placeholder="0 ₽";inp.value=val!==""&&val!=null?val:"";
+    if(HINTS[o.id]&&HINTS[o.id][ai]!=null){
+      const lk=document.createElement("a");lk.className="hintlink";lk.textContent="📩";
+      lk.href="https://mail.google.com/mail/u/0/#search/"+HINTS[o.id][ai];lk.target="_blank";lk.title="Открыть квитанцию в почте";
+      nm.appendChild(lk);
+    }
+    const inp=document.createElement("input");inp.className="amt-in"+(isAuto?" auto":"");inp.type="text";inp.inputMode="decimal";
+    inp.placeholder="0 ₽";inp.value=(val!==""&&val!=null)?val:(av!=null?String(av):"");
     inp.onfocus=()=>inp.select();
-    inp.oninput=()=>{store[o.id].amt[ai][curMonth]=inp.value.replace(/[^\d.,]/g,"");save();refreshTotals();renderMonths();};
+    inp.oninput=()=>{inp.classList.remove("auto");store[o.id].amt[ai][curMonth]=inp.value.replace(/[^\d.,]/g,"");save();refreshTotals();renderMonths();};
     const chk=document.createElement("button");chk.className="chk";chk.textContent="✓";
     chk.onclick=()=>{store[o.id].paid[ai][curMonth]=!store[o.id].paid[ai][curMonth];save();
       row.classList.toggle("paid",store[o.id].paid[ai][curMonth]);refreshTotals();renderMonths();};
@@ -177,7 +203,7 @@ function refreshTotals(){
   document.getElementById("mtotal").textContent=fmt(objMonth(o,curMonth));
   document.getElementById("objYear").textContent=fmt(objYear(o));
   let paid=0,withAmt=0;
-  o.articles.forEach((art,ai)=>{if(num(store[o.id].amt[ai][curMonth])>0){withAmt++;if(store[o.id].paid[ai][curMonth])paid++;}});
+  o.articles.forEach((art,ai)=>{if(eff(o.id,ai,curMonth)>0){withAmt++;if(store[o.id].paid[ai][curMonth])paid++;}});
   document.getElementById("paidCount").textContent="оплачено "+paid+" из "+withAmt;
 }
 
