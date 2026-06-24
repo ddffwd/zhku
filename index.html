@@ -28,6 +28,10 @@
   .obj .amt{font-size:16px;font-weight:700;color:var(--navy);white-space:nowrap;}
   .obj .chev{color:#c2c8d2;font-size:22px;}
   .grand{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--navy);color:#fff;border-radius:14px;font-size:16px;font-weight:700;margin:12px 0;}
+  .due{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:14px;font-size:16px;font-weight:700;margin:0 0 12px;color:#fff;}
+  .due.warn{background:#e8821a;}
+  .due.ok{background:var(--green);}
+  .due .sub{display:block;font-size:11px;font-weight:400;opacity:.9;margin-top:2px;}
   .card{background:#fff;border-radius:14px;padding:4px 4px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px;}
   .row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);}
   .row:last-child{border-bottom:none;}
@@ -59,6 +63,7 @@
 <div id="home">
   <div class="wrap">
     <div class="grand"><span>Всего за 2026</span><span id="grandTotal">0 ₽</span></div>
+    <div class="due ok" id="dueCard" style="display:none"></div>
     <div id="objList"></div>
     <button class="reset" onclick="if(confirm('Очистить все суммы и отметки?')){localStorage.removeItem(KEY);location.reload();}">Очистить все данные</button>
     <div class="hint">Тапните по объекту, чтобы внести суммы по статьям и отметить оплату.</div>
@@ -155,6 +160,26 @@ function renderHome(){
     list.appendChild(d);
   });
   document.getElementById("grandTotal").textContent=fmt(grand);
+  renderDue();
+}
+
+function renderDue(){
+  var cm=Math.min(new Date().getMonth(),11);
+  var due=0,accrued=0;
+  OBJECTS.forEach(function(o){o.articles.forEach(function(art,ai){
+    var v=eff(o.id,ai,cm);
+    if(v>0){accrued+=v;if(!store[o.id].paid[ai][cm])due+=v;}
+  });});
+  var dc=document.getElementById("dueCard");
+  if(accrued<=0){dc.style.display="none";return;}
+  dc.style.display="";
+  dc.className="due "+(due>0?"warn":"ok");
+  if(due>0){
+    dc.innerHTML='<span>Осталось оплатить за '+MONTHS[cm].toLowerCase()+
+      '<span class="sub">начислено '+fmt(accrued)+'</span></span><span>'+fmt(due)+'</span>';
+  }else{
+    dc.innerHTML='<span>За '+MONTHS[cm].toLowerCase()+' всё оплачено<span class="sub">'+fmt(accrued)+'</span></span><span>✓</span>';
+  }
 }
 
 function renderMonths(){
